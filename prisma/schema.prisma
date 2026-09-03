@@ -1,0 +1,246 @@
+// 먼나라 이웃나라 부동산편 - 데이터 모델
+
+generator client {
+  provider = "prisma-client"
+  output   = "../app/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// 사용자
+model User {
+  id            String   @id @default(cuid())
+  email         String   @unique
+  emailVerified DateTime?
+  name          String?
+  role          Role     @default(USER)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  bookmarks         Bookmark[]
+  editorialReviews  EditorialReview[]
+
+  @@map("users")
+}
+
+enum Role {
+  USER
+  ADMIN
+}
+
+// 뉴스 출처 (신문, 포털, 정부 기관 등)
+model Source {
+  id              String   @id @default(cuid())
+  name            String   @unique
+  country         String   // "Japan" | "Korea"
+  type            String   // "news", "government", "research"
+  url             String
+  reliabilityLevel Int     @default(3) // 1-5
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  articles Article[]
+
+  @@map("sources")
+}
+
+// 뉴스 기사
+model Article {
+  id                  String   @id @default(cuid())
+  title               String
+  slug                String   @unique
+  sourceId            String
+  source              Source   @relation(fields: [sourceId], references: [id], onDelete: Cascade)
+  sourceUrl           String
+  sourcePublishedAt   DateTime
+  status              ArticleStatus @default(DRAFT)
+  publishedAt         DateTime?
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  summary             ArticleSummary?
+  tags                ArticleTag[]
+  bookmarks           Bookmark[]
+  reviews             EditorialReview[]
+  relatedLegalCards   ArticleLegalCard[]
+
+  @@index([sourceId])
+  @@index([status])
+  @@index([publishedAt])
+  @@map("articles")
+}
+
+enum ArticleStatus {
+  DRAFT
+  PENDING_REVIEW
+  PUBLISHED
+  REJECTED
+}
+
+// 뉴스 요약 및 비교
+model ArticleSummary {
+  id                  String   @id @default(cuid())
+  articleId           String   @unique
+  article             Article  @relation(fields: [articleId], references: [id], onDelete: Cascade)
+
+  japaneseSummary     String   @db.Text  // 일본 상황 요약
+  koreanComparison    String   @db.Text  // 한국과의 비교
+  keyPoints           String   @db.Text  // 체크포인트 (JSON 배열)
+  riskNotes           String   @db.Text  // 주의사항
+
+  category            String   // "market", "finance", "rental", "law", "urban"
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  @@index([articleId])
+  @@map("article_summaries")
+}
+
+// 법·제도 비교 카드
+model LegalCard {
+  id                  String   @id @default(cuid())
+  topic               String   @unique  // 주제 (예: 매매계약 전 설명 의무)
+  japanContent        String   @db.Text // 일본 제도
+  koreaContent        String   @db.Text // 한국 제도
+  differenceSummary   String   @db.Text // 핵심 차이
+  references          String   @db.Text // 근거 링크 (JSON)
+  warningNote         String   @db.Text // 법적 고지
+
+  reviewedAt          DateTime?
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  articles            ArticleLegalCard[]
+  bookmarks           Bookmark[]
+
+  @@map("legal_cards")
+}
+
+// 뉴스와 법 카드의 연결
+model ArticleLegalCard {
+  id          String   @id @default(cuid())
+  articleId   String
+  article     Article  @relation(fields: [articleId], references: [id], onDelete: Cascade)
+  legalCardId String
+  legalCard   LegalCard @relation(fields: [legalCardId], references: [id], onDelete: Cascade)
+  createdAt   DateTime @default(now())
+
+  @@unique([articleId, legalCardId])
+  @@index([articleId])
+  @@index([legalCardId])
+  @@map("article_legal_cards")
+}
+
+// 시장 역사 타임라인
+model TimelineEvent {
+  id          String   @id @default(cuid())
+  country     String   // "Japan" | "Korea"
+  eventDate   DateTime
+  title       String
+  description String   @db.Text
+  category    String   // "market", "policy", "disaster", "development"
+  sourceUrl   String?
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([country])
+  @@index([eventDate])
+  @@map("timeline_events")
+}
+
+// 지역 (도쿄 23구, 서울 등)
+model Region {
+  id              String   @id @default(cuid())
+  country         String   // "Japan" | "Korea"
+  name            String
+  parentRegionId  String?
+  parent          Region?  @relation("RegionHierarchy", fields: [parentRegionId], references: [id], onDelete: SetNull)
+  children        Region[] @relation("RegionHierarchy")
+
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@unique([country, name])
+  @@index([country])
+  @@map("regions")
+}
+
+// 태그
+model Tag {
+  id        String   @id @default(cuid())
+  name      String   @unique
+  createdAt DateTime @default(now())
+
+  articles  ArticleTag[]
+
+  @@map("tags")
+}
+
+// 기사와 태그의 다대다 관계
+model ArticleTag {
+  id        String   @id @default(cuid())
+  articleId String
+  article   Article  @relation(fields: [articleId], references: [id], onDelete: Cascade)
+  tagId     String
+  tag       Tag      @relation(fields: [tagId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@unique([articleId, tagId])
+  @@index([articleId])
+  @@index([tagId])
+  @@map("article_tags")
+}
+
+// 사용자 북마크
+model Bookmark {
+  id         String   @id @default(cuid())
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  targetType String   // "article" | "legal_card"
+  articleId  String?
+  article    Article? @relation(fields: [articleId], references: [id], onDelete: Cascade)
+  legalCardId String?
+  legalCard  LegalCard? @relation(fields: [legalCardId], references: [id], onDelete: Cascade)
+
+  createdAt  DateTime @default(now())
+
+  @@unique([userId, targetType, articleId, legalCardId])
+  @@index([userId])
+  @@index([articleId])
+  @@index([legalCardId])
+  @@map("bookmarks")
+}
+
+// 편집 검수 이력
+model EditorialReview {
+  id         String   @id @default(cuid())
+  targetType String   // "article" | "legal_card"
+  targetId   String   // articleId 또는 legalCardId
+
+  reviewerId String
+  reviewer   User     @relation(fields: [reviewerId], references: [id])
+
+  status     ReviewStatus @default(PENDING)
+  notes      String   @db.Text
+
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  article    Article? @relation(fields: [targetId], references: [id], onDelete: Cascade)
+
+  @@index([targetId])
+  @@index([reviewerId])
+  @@map("editorial_reviews")
+}
+
+enum ReviewStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  NEEDS_REVISION
+}

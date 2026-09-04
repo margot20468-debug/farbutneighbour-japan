@@ -6,7 +6,7 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
+  provider = "sqlite"
   url      = env("DATABASE_URL")
 }
 
@@ -86,10 +86,10 @@ model ArticleSummary {
   articleId           String   @unique
   article             Article  @relation(fields: [articleId], references: [id], onDelete: Cascade)
 
-  japaneseSummary     String   @db.Text  // 일본 상황 요약
-  koreanComparison    String   @db.Text  // 한국과의 비교
-  keyPoints           String   @db.Text  // 체크포인트 (JSON 배열)
-  riskNotes           String   @db.Text  // 주의사항
+  japaneseSummary     String   // 일본 상황 요약
+  koreanComparison    String   // 한국과의 비교
+  keyPoints           String   // 체크포인트 (JSON 배열)
+  riskNotes           String   // 주의사항
 
   category            String   // "market", "finance", "rental", "law", "urban"
   createdAt           DateTime @default(now())
@@ -103,11 +103,11 @@ model ArticleSummary {
 model LegalCard {
   id                  String   @id @default(cuid())
   topic               String   @unique  // 주제 (예: 매매계약 전 설명 의무)
-  japanContent        String   @db.Text // 일본 제도
-  koreaContent        String   @db.Text // 한국 제도
-  differenceSummary   String   @db.Text // 핵심 차이
-  references          String   @db.Text // 근거 링크 (JSON)
-  warningNote         String   @db.Text // 법적 고지
+  japanContent        String   // 일본 제도
+  koreaContent        String   // 한국 제도
+  differenceSummary   String   // 핵심 차이
+  references          String   // 근거 링크 (JSON)
+  warningNote         String   // 법적 고지
 
   reviewedAt          DateTime?
   createdAt           DateTime @default(now())
@@ -140,7 +140,7 @@ model TimelineEvent {
   country     String   // "Japan" | "Korea"
   eventDate   DateTime
   title       String
-  description String   @db.Text
+  description String
   category    String   // "market", "policy", "disaster", "development"
   sourceUrl   String?
 
@@ -226,7 +226,7 @@ model EditorialReview {
   reviewer   User     @relation(fields: [reviewerId], references: [id])
 
   status     ReviewStatus @default(PENDING)
-  notes      String   @db.Text
+  notes      String
 
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt

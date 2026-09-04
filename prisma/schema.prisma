@@ -16,7 +16,7 @@ model User {
   email         String   @unique
   emailVerified DateTime?
   name          String?
-  role          Role     @default(USER)
+  role          String   @default("USER") // USER | ADMIN
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 
@@ -68,10 +68,8 @@ model VerificationToken {
   @@map("verification_tokens")
 }
 
-enum Role {
-  USER
-  ADMIN
-}
+// enum Role - SQLite는 enum 미지원, String으로 관리
+// USER, ADMIN
 
 // 뉴스 출처 (신문, 포털, 정부 기관 등)
 model Source {
@@ -98,7 +96,7 @@ model Article {
   source              Source   @relation(fields: [sourceId], references: [id], onDelete: Cascade)
   sourceUrl           String
   sourcePublishedAt   DateTime
-  status              ArticleStatus @default(DRAFT)
+  status              String @default("DRAFT") // DRAFT | PENDING_REVIEW | PUBLISHED | REJECTED
   publishedAt         DateTime?
   createdAt           DateTime @default(now())
   updatedAt           DateTime @updatedAt
@@ -115,12 +113,8 @@ model Article {
   @@map("articles")
 }
 
-enum ArticleStatus {
-  DRAFT
-  PENDING_REVIEW
-  PUBLISHED
-  REJECTED
-}
+// enum ArticleStatus - SQLite는 enum 미지원, String으로 관리
+// DRAFT, PENDING_REVIEW, PUBLISHED, REJECTED
 
 // 뉴스 요약 및 비교
 model ArticleSummary {
@@ -267,7 +261,7 @@ model EditorialReview {
   reviewerId String
   reviewer   User     @relation(fields: [reviewerId], references: [id])
 
-  status     ReviewStatus @default(PENDING)
+  status     String @default("PENDING") // PENDING | APPROVED | REJECTED | NEEDS_REVISION
   notes      String
 
   createdAt  DateTime @default(now())
@@ -280,9 +274,5 @@ model EditorialReview {
   @@map("editorial_reviews")
 }
 
-enum ReviewStatus {
-  PENDING
-  APPROVED
-  REJECTED
-  NEEDS_REVISION
-}
+// enum ReviewStatus - SQLite는 enum 미지원, String으로 관리
+// PENDING, APPROVED, REJECTED, NEEDS_REVISION

@@ -1,8 +1,12 @@
 import { NextResponse } from 'next/server'
-import { prisma } from '@/lib/db'
+
+export const runtime = 'nodejs'
 
 export async function POST() {
   try {
+    // 동적 import로 Prisma 클라이언트 로드
+    const { prisma } = await import('@/lib/db')
+
     console.log('📊 시드 데이터 입력 시작...')
 
     // 출처 생성

@@ -14,3 +14,5 @@ export default auth((req) => {
 export const config = {
   matcher: ['/admin/:path*'],
 }
+
+export const runtime = 'nodejs'

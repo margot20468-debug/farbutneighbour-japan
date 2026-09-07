@@ -1,8 +1,7 @@
 // 먼나라 이웃나라 부동산편 - 데이터 모델
 
 generator client {
-  provider = "prisma-client"
-  output   = "../app/generated/prisma"
+  provider = "prisma-client-js"
 }
 
 datasource db {

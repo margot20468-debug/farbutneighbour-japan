@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { prisma } from '@/lib/db'
 
 // 뉴스 등록 API
 // POST /api/articles
@@ -84,28 +85,26 @@ export async function POST(
   }
 }
 
-// 뉴스 목록 조회 (선택)
+// 뉴스 목록 조회
 export async function GET(request: NextRequest) {
   try {
     const searchParams = request.nextUrl.searchParams
     const category = searchParams.get('category')
     const status = searchParams.get('status')
 
-    // TODO: Prisma를 사용하여 데이터베이스에서 조회
-    // const articles = await prisma.article.findMany({
-    //   where: {
-    //     ...(category && { summary: { category } }),
-    //     ...(status && { status }),
-    //   },
-    //   include: { summary: true },
-    //   orderBy: { publishedAt: 'desc' },
-    // })
+    const articles = await prisma.article.findMany({
+      where: {
+        ...(category && { summary: { category } }),
+        ...(status && { status }),
+      },
+      include: { summary: true, source: true },
+      orderBy: { publishedAt: { sort: 'desc', nulls: 'last' } },
+    })
 
-    // 임시로 빈 배열 반환
     return NextResponse.json(
       {
         success: true,
-        data: [],
+        data: articles,
       },
       { status: 200 }
     )
